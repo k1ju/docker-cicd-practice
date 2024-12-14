@@ -40,13 +40,13 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Docker 이미지 생성
-        run: docker build -t instagram-server .
+        run: docker build -t docker-cice-practice .
 
       - name: Docker 이미지에 Tag 붙이기
-        run: docker tag instagram-server ${{ steps.login-ecr.outputs.registry }}/instagram-server:latest
+        run: docker tag docker-cice-practice ${{ steps.login-ecr.outputs.registry }}/docker-cice-practice:latest
 
       - name: ECR에 Docker 이미지 Push하기
-        run: docker push ${{ steps.login-ecr.outputs.registry }}/instagram-server:latest
+        run: docker push ${{ steps.login-ecr.outputs.registry }}/docker-cice-practice:latest
 
       - name: SSH로 EC2에 접속하기
         uses: appleboy/ssh-action@v1.0.3
@@ -56,7 +56,7 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script_stop: true
           script: |
-            docker stop instagram-server || true  
-            docker rm instagram-server || true
-            docker pull ${{ steps.login-ecr.outputs.registry }}/instagram-server:latest
-            docker run -d --name instagram-server -p 3000:3000 ${{ steps.login-ecr.outputs.registry }}/instagram-server:latest
+            docker stop docker-cice-practice || true  
+            docker rm docker-cice-practice || true
+            docker pull ${{ steps.login-ecr.outputs.registry }}/docker-cice-practice:latest
+            docker run -d --name docker-cice-practice -p 3000:3000 ${{ steps.login-ecr.outputs.registry }}/docker-cice-practice:latest
