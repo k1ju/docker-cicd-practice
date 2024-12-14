@@ -30,10 +30,10 @@ jobs:
 
     - name: AWS Resource에 접근할수 있게 AWS credential설정
       uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-region: ap-northeast-2
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      with:
+        aws-region: ap-northeast-2
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
     
     - name: ECR에 로그인
       id: login-ecr
