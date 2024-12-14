@@ -56,7 +56,7 @@ jobs:
           key: ${{ secrets.EC2_PRIVATE_KEY }}
           script_stop: true
           script: |
-            docker stop docker-cicd-practice || true  
+            docker stop docker-cicd-practice || true
             docker rm docker-cicd-practice || true
             docker pull ${{ steps.login-ecr.outputs.registry }}/docker-cicd-practice:latest
             docker run -d --name docker-cicd-practice -p 3000:3000 ${{ steps.login-ecr.outputs.registry }}/docker-cicd-practice:latest
