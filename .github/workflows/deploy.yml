@@ -1,4 +1,4 @@
-name: 컨테이너환경 배포
+name: Deploy To EC2
 
 on:
   push:
@@ -9,33 +9,33 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Github 레포지토리 파일 불러오기
+      - name: Github Repository 파일 불러오기
         uses: actions/checkout@v4
 
-      - name: node설치
+      - name: Node 설치
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 의존성설치
+      - name: 의존성(라이브러리) 설치
         run: npm ci
 
-      - name: .env파일만들기
+      - name: .env 파일 만들기
         run: |
           touch .env
           echo '${{ secrets.ENV }}' >> .env
 
-      - name: 테스트코드 실행
+      - name: 테스트 코드 실행
         run: npm run test
 
-      - name: AWS Resource에 접근할수 있게 AWS credential설정
+      - name: AWS Resource에 접근할 수 있게 AWS credentials 설정
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-region: ap-northeast-2
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_ACCESS_SECRET_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_EC2_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_EC2_ACCESS_SECRET_KEY }}
 
-      - name: ECR에 로그인
+      - name: ECR에 로그인하기
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
@@ -48,15 +48,16 @@ jobs:
       - name: ECR에 Docker 이미지 Push하기
         run: docker push ${{ steps.login-ecr.outputs.registry }}/docker-cicd-practice:latest
 
-      - name: SSH로 EC2에 접속하기
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.AWS_EC2_HOST }}
-          username: ${{ secrets.AWS_EC2_USER }}
-          key: ${{ secrets.AWS_EC2_PRIVATE_KEY }}
-          script_stop: true
-          script: |
-            docker stop docker-cicd-practice || true
-            docker rm docker-cicd-practice || true
-            docker pull ${{ steps.login-ecr.outputs.registry }}/docker-cicd-practice:latest
-            docker run -d --name docker-cicd-practice -p 3000:3000 ${{ steps.login-ecr.outputs.registry }}/docker-cicd-practice:latest
+      #code deploy에 필요한 로직
+      - name: 압축하기
+        run: tar -czvf $GITHUB_SHA.tar.gz appspec.yml scripts
+
+      - name: S3에 프로젝트 폴더 업로드하기
+        run: aws s3 cp --region ap-northeast-2 ./$GITHUB_SHA.tar.gz s3://docker-cicd-practice/$GITHUB_SHA.tar.gz
+
+      - name: Code Deploy를 활용해 EC2에 프로젝트 코드 배포
+        run: aws deploy create-deployment
+          --application-name docker-cicd-practice
+          --deployment-config-name CodeDeployDefault.AllAtOnce
+          --deployment-group-name Production
+          --s3-location bucket=docker-cicd-practice,bundleType=tgz,key=$GITHUB_SHA.tar.gz
